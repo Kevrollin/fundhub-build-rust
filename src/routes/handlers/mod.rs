@@ -1,0 +1,14 @@
+pub mod auth;
+pub mod students;
+pub mod wallets;
+pub mod projects;
+pub mod donations;
+pub mod campaigns;
+pub mod admin;
+pub mod analytics;
+pub mod contracts;
+pub mod docs;
+pub mod guest;
+pub mod milestones;
+pub mod notifications;
+pub mod payments;

@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # PostgreSQL database
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: fundhub2
+      POSTGRES_USER: dev_mk
+      POSTGRES_PASSWORD: Kevdev%402025
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_mk -d fundhub2"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO object storage
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Soroban CLI service (for contract operations)
+  soroban:
+    build:
+      context: .
+      dockerfile: docker/soroban.Dockerfile
+    volumes:
+      - .:/workspace
+      - cargo_cache:/usr/local/cargo/registry
+    working_dir: /workspace
+    environment:
+      - CARGO_HOME=/usr/local/cargo
+    command: ["tail", "-f", "/dev/null"]  # Keep container running
+    profiles:
+      - soroban
+
+  # FundHub API service
+  fundhub-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://dev_mk:Kevdev%402025@postgres:5432/fundhub2
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-jwt-secret-key-here
+      - STELLAR_HORIZON_URL=https://horizon-testnet.stellar.org
+      - PLATFORM_WALLET_PUBLIC_KEY=your-platform-wallet-key
+      - MINIO_ENDPOINT=http://minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: ["cargo", "run"]
+    profiles:
+      - api
+
+volumes:
+  postgres_data:
+  minio_data:
+  cargo_cache:

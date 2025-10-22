@@ -1,0 +1,87 @@
+[package]
+name = "fundhub"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "fundhub"
+path = "src/lib.rs"
+
+[[bin]]
+name = "fundhub"
+path = "src/main.rs"
+
+[[bin]]
+name = "indexer"
+path = "src/bin/indexer.rs"
+
+[dependencies]
+# Web framework
+axum = { version = "0.7", features = ["macros", "multipart"] }
+tokio = { version = "1.35", features = ["full"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "macros", "bigdecimal"] }
+redis = { version = "0.24", features = ["tokio-comp"] }
+
+# Authentication & Security
+jsonwebtoken = "9.2"
+argon2 = "0.5"
+rand = "0.8"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Stellar SDK
+stellar-base = "0.5.0"
+
+# Async utilities
+futures = "0.3"
+async-trait = "0.1"
+tokio-stream = { version = "0.1", features = ["sync"] }
+
+# HTTP client
+reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging & Metrics
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+config = "0.13"
+dotenvy = "0.15"
+
+# UUID handling
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Decimal for NUMERIC
+bigdecimal = { version = "0.3.1", features = ["serde"] }
+num-traits = "0.2"
+
+# Terminal UI and CLI
+indicatif = "0.17"
+console = "0.15"
+colored = "2.1"
+
+# OpenAPI documentation
+utoipa = { version = "4.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "4.0", features = ["axum"] }
+
+# Payment processing
+base64 = "0.21"
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+
+[dev-dependencies]
+tokio-test = "0.4"
