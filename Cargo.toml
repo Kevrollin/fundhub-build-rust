@@ -36,7 +36,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Stellar SDK
-stellar-base = "0.5.0"
+stellar_sdk = "0.1.4"
 
 # Async utilities
 futures = "0.3"
@@ -44,7 +44,7 @@ async-trait = "0.1"
 tokio-stream = { version = "0.1", features = ["sync"] }
 
 # HTTP client
-reqwest = { version = "0.11", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11", features = ["json", "rustls-tls", "blocking"] }
 
 # Error handling
 anyhow = "1.0"

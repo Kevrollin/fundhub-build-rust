@@ -9,6 +9,7 @@ pub struct Config {
     pub stellar_network: String,
     pub stellar_horizon_url: String,
     pub platform_wallet_public_key: String,
+    pub platform_wallet_secret_key: String,
 }
 
 impl Config {
@@ -20,6 +21,7 @@ impl Config {
             stellar_network: std::env::var("STELLAR_NETWORK")?,
             stellar_horizon_url: std::env::var("STELLAR_HORIZON_URL")?,
             platform_wallet_public_key: std::env::var("PLATFORM_WALLET_PUBLIC_KEY")?,
+            platform_wallet_secret_key: std::env::var("PLATFORM_WALLET_SECRET_KEY")?,
         })
     }
 }

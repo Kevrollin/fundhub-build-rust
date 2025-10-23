@@ -1,6 +1,7 @@
 pub mod auth;
 pub mod students;
 pub mod wallets;
+pub mod wallet;
 pub mod projects;
 pub mod donations;
 pub mod campaigns;

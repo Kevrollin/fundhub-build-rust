@@ -272,7 +272,7 @@ POST /api/projects
   "repo_url": "https://github.com/user/project",
   "media_url": "https://example.com/video.mp4",
   "tags": ["AI", "Healthcare", "Research"],
-  "funding_goal": 1000.00
+  //"funding_goal": 1000.00
 }
 
 // 2. Get Projects

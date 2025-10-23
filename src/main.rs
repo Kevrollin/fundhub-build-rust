@@ -54,6 +54,11 @@ async fn main() -> Result<()> {
     cli.initialize_stellar().await?;
     
     let stellar_service = services::stellar::StellarService::new(&config)?;
+    let new_stellar_service = services::NewStellarService::new(
+        &config.stellar_horizon_url,
+        &config.platform_wallet_secret_key,
+        &config.platform_wallet_public_key,
+    )?;
     
     // Start background workers
     startup_pb.set_message("Starting background workers...");
@@ -134,7 +139,12 @@ async fn main() -> Result<()> {
         // Add middleware
         .layer(tower_http::trace::TraceLayer::new_for_http())
         // Add state
-        .with_state(state::AppState { pool, stellar: stellar_service, notifier: tx });
+        .with_state(state::AppState { 
+            pool, 
+            stellar: stellar_service, 
+            stellar_service: new_stellar_service,
+            notifier: tx 
+        });
 
     // Complete startup
     startup_pb.set_message("Starting HTTP server...");

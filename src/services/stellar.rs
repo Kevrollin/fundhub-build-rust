@@ -1,6 +1,8 @@
-use stellar_base::{
-    crypto::KeyPair,
-    network::Network,
+use stellar_sdk::{
+    Server,
+    types::Asset,
+    utils::{Direction, Endpoint},
+    CallBuilder,
 };
 use crate::config::Config;
 use anyhow::Result;
@@ -10,33 +12,30 @@ use reqwest::Client;
 
 #[derive(Clone)]
 pub struct StellarService {
-    network: Network,
+    server: Server,
+    horizon_url: String,
     platform_public_key: String,
     http: Client,
 }
 
 impl StellarService {
     pub fn new(config: &Config) -> Result<Self> {
-        let network = match config.stellar_network.as_str() {
-            "testnet" => Network::new_test(),
-            "public" => Network::new_public(),
+        let horizon_url = match config.stellar_network.as_str() {
+            "testnet" => "https://horizon-testnet.stellar.org".to_string(),
+            "public" => "https://horizon.stellar.org".to_string(),
             _ => return Err(anyhow::anyhow!("Invalid network specified")),
         };
 
         Ok(Self {
-            network,
+            server: Server::new(horizon_url.clone(), None)?,
+            horizon_url,
             platform_public_key: config.platform_wallet_public_key.clone(),
             http: Client::new(),
         })
     }
 
     pub async fn verify_transaction(&self, tx_hash: &str) -> Result<bool> {
-        let base = if self.network == Network::new_test() {
-            "https://horizon-testnet.stellar.org"
-        } else {
-            "https://horizon.stellar.org"
-        };
-        let url = format!("{}/transactions/{}", base, tx_hash);
+        let url = format!("{}/transactions/{}", self.horizon_url, tx_hash);
         let resp = self.http.get(url).send().await?;
         if !resp.status().is_success() {
             return Ok(false);
@@ -47,23 +46,13 @@ impl StellarService {
     }
 
     pub async fn validate_wallet(&self, public_key: &str) -> Result<bool> {
-        let base = if self.network == Network::new_test() {
-            "https://horizon-testnet.stellar.org"
-        } else {
-            "https://horizon.stellar.org"
-        };
-        let url = format!("{}/accounts/{}", base, public_key);
+        let url = format!("{}/accounts/{}", self.horizon_url, public_key);
         let resp = self.http.get(url).send().await?;
         Ok(resp.status().is_success())
     }
 
     pub async fn fetch_wallet_balance(&self, public_key: &str) -> Result<WalletBalance> {
-        let base = if self.network == Network::new_test() {
-            "https://horizon-testnet.stellar.org"
-        } else {
-            "https://horizon.stellar.org"
-        };
-        let url = format!("{}/accounts/{}", base, public_key);
+        let url = format!("{}/accounts/{}", self.horizon_url, public_key);
         let resp = self.http.get(url).send().await?;
         if !resp.status().is_success() { return Err(anyhow::anyhow!("account not found")); }
         let acc = resp.json::<AccountResponse>().await?;
@@ -80,12 +69,7 @@ impl StellarService {
     }
 
     pub async fn fetch_wallet_transactions(&self, public_key: &str) -> Result<Vec<TransactionRecord>> {
-        let base = if self.network == Network::new_test() {
-            "https://horizon-testnet.stellar.org"
-        } else {
-            "https://horizon.stellar.org"
-        };
-        let url = format!("{}/accounts/{}/payments?limit=20&order=desc", base, public_key);
+        let url = format!("{}/accounts/{}/payments?limit=20&order=desc", self.horizon_url, public_key);
         let resp = self.http.get(url).send().await?;
         if !resp.status().is_success() { return Ok(vec![]); }
         let list = resp.json::<RecordsEnvelope<PaymentOp>>().await?;
@@ -110,12 +94,7 @@ impl StellarService {
     }
 
     pub async fn fetch_transaction_details(&self, tx_hash: &str) -> Result<TransactionDetails> {
-        let base = if self.network == Network::new_test() {
-            "https://horizon-testnet.stellar.org"
-        } else {
-            "https://horizon.stellar.org"
-        };
-        let url = format!("{}/transactions/{}", base, tx_hash);
+        let url = format!("{}/transactions/{}", self.horizon_url, tx_hash);
         let resp = self.http.get(url).send().await?;
         if !resp.status().is_success() {
             return Err(anyhow::anyhow!("Transaction not found"));

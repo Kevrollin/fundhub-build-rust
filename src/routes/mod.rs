@@ -45,6 +45,16 @@ pub fn wallet_routes() -> Router<AppState> {
         .route("/balance/:wallet_id", get(self::handlers::wallets::get_balance))
         .route("/transactions/:wallet_id", get(self::handlers::wallets::get_transactions))
         .route("/verify-transaction", post(self::handlers::wallets::verify_transaction))
+        // New Stellar wallet routes
+        .route("/stellar/create", post(self::handlers::wallet::create_wallet))
+        .route("/stellar/balance/:address", get(self::handlers::wallet::get_balance))
+        .route("/stellar/balances/:address", get(self::handlers::wallet::get_balances))
+        .route("/stellar/send", post(self::handlers::wallet::send_payment))
+        .route("/stellar/fund-platform", post(self::handlers::wallet::fund_platform))
+        .route("/stellar/platform", get(self::handlers::wallet::get_platform_info))
+        .route("/stellar/fund-friendbot/:address", post(self::handlers::wallet::fund_with_friendbot))
+        .route("/stellar/transactions/:address", get(self::handlers::wallet::get_transactions))
+        .route("/stellar/validate/:address", get(self::handlers::wallet::validate_address))
         // Removed student-only restriction - all authenticated users can connect wallets
 }
 
