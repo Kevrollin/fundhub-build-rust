@@ -20,6 +20,12 @@ pub struct InitiateDonationRequest {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct PlatformDonationRequest {
+    pub amount: f64,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct VerifyDonationRequest {
     pub donation_id: Uuid,
     pub tx_hash: String,
@@ -197,7 +203,7 @@ pub async fn verify(
     // Emit SSE notification
     let _ = state.notifier.send(format!(
         "donation_confirmed:{}:{}",
-        donation.project_id,
+        donation.project_id.map(|id| id.to_string()).unwrap_or_else(|| "platform".to_string()),
         payload.donation_id
     ));
 
@@ -216,7 +222,7 @@ pub async fn get_project_donations(
         Donation,
         r#"
         SELECT id, donor_id, project_id, amount, tx_hash, memo,
-               status, payment_method, confirmed_at, created_at
+               status, payment_method, donation_type, confirmed_at, created_at
         FROM donations
         WHERE project_id = $1
         ORDER BY created_at DESC
@@ -238,7 +244,7 @@ pub async fn get_student_donations(
         Donation,
         r#"
         SELECT d.id, d.donor_id, d.project_id, d.amount, d.tx_hash, d.memo,
-               d.status, d.payment_method, d.confirmed_at, d.created_at
+               d.status, d.payment_method, d.donation_type, d.confirmed_at, d.created_at
         FROM donations d
         JOIN projects p ON p.id = d.project_id
         WHERE p.student_id = $1
@@ -251,4 +257,67 @@ pub async fn get_student_donations(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Json(donations))
+}
+
+pub async fn initiate_platform_donation(
+    State(state): State<crate::state::AppState>,
+    Json(payload): Json<PlatformDonationRequest>,
+) -> Result<(StatusCode, Json<serde_json::Value>), StatusCode> {
+    // Platform wallet address (this should be configured in environment)
+    let platform_wallet = std::env::var("PLATFORM_WALLET_ADDRESS")
+        .unwrap_or_else(|_| "GALAXY_PLATFORM_WALLET_ADDRESS".to_string());
+    
+    // Parse amount to BigDecimal
+    let amount: BigDecimal = payload.amount
+        .to_string()
+        .parse()
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Generate donation ID and use as memo
+    let donation_id = Uuid::new_v4();
+    let memo = format!("platform_donation:{}", donation_id);
+
+    // Create platform donation record (project_id = NULL for platform donations)
+    let _donation = sqlx::query!(
+        r#"
+        INSERT INTO donations (
+            id,
+            donor_id,
+            project_id,
+            amount,
+            payment_method,
+            memo,
+            status,
+            donation_type
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, 'pending', 'platform')
+        RETURNING id
+        "#,
+        donation_id,
+        None::<Uuid>, // No donor_id for platform donations
+        None::<Uuid>, // No project_id for platform donations
+        amount,
+        "platform_fund",
+        memo,
+    )
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Build payment instruction for platform donation
+    let payment_instruction = serde_json::json!({
+        "type": "platform_donation",
+        "recipient_wallet": platform_wallet,
+        "amount_xlm": payload.amount,
+        "memo": memo,
+        "donation_id": donation_id,
+        "message": payload.message
+    });
+
+    Ok((StatusCode::OK, Json(serde_json::json!({
+        "donation_id": donation_id,
+        "status": "pending",
+        "payment_instruction": payment_instruction,
+        "tx_hash": null // Will be set when transaction is submitted
+    }))))
 }

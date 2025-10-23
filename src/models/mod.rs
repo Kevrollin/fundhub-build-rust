@@ -14,6 +14,9 @@ pub struct User {
     pub base_role: BaseRole,
     pub is_verified: bool,
     pub status: UserStatus,
+    pub verification_status: Option<String>,
+    pub verification_submitted_at: Option<DateTime<Utc>>,
+    pub verification_approved_at: Option<DateTime<Utc>>,
     pub last_login: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
@@ -128,12 +131,13 @@ pub struct ProjectMilestone {
 pub struct Donation {
     pub id: Uuid,
     pub donor_id: Option<Uuid>,
-    pub project_id: Uuid,
+    pub project_id: Option<Uuid>,
     pub amount: BigDecimal,
     pub tx_hash: Option<String>,
     pub memo: Option<String>,
     pub status: String,
     pub payment_method: String,
+    pub donation_type: Option<String>,
     pub confirmed_at: Option<DateTime<Utc>>,
     pub created_at: Option<DateTime<Utc>>,
 }
@@ -246,9 +250,42 @@ pub struct StudentVerification {
     pub id: Uuid,
     pub user_id: Uuid,
     pub school_email: String,
+    pub full_name: Option<String>,
+    pub school_name: Option<String>,
+    pub student_bio: Option<String>,
+    pub motivation_text: Option<String>,
     pub status: VerificationStatus,
     pub admin_message: Option<String>,
     pub approved_at: Option<DateTime<Utc>>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct StudentProfile {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub full_name: String,
+    pub school_name: String,
+    pub school_email: String,
+    pub student_bio: Option<String>,
+    pub motivation_text: Option<String>,
+    pub profile_picture_url: Option<String>,
+    pub linkedin_url: Option<String>,
+    pub github_url: Option<String>,
+    pub portfolio_url: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerificationHistory {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub verification_id: Option<Uuid>,
+    pub status: String,
+    pub admin_message: Option<String>,
+    pub admin_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -288,6 +325,47 @@ pub struct GuestFundingRequest {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StudentVerificationRequest {
     pub school_email: String,
+    pub full_name: String,
+    pub school_name: String,
+    pub student_bio: Option<String>,
+    pub motivation_text: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EnhancedStudentVerificationRequest {
+    pub school_email: String,
+    pub full_name: String,
+    pub school_name: String,
+    pub student_bio: Option<String>,
+    pub motivation_text: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerificationStatusResponse {
+    pub status: String,
+    pub message: Option<String>,
+    pub submitted_at: Option<DateTime<Utc>>,
+    pub approved_at: Option<DateTime<Utc>>,
+    pub admin_message: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApproveVerificationRequest {
+    pub admin_id: Uuid,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RejectVerificationRequest {
+    pub admin_id: Uuid,
+    pub reason: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct VerificationResponse {
+    pub verification_id: Uuid,
+    pub status: String,
+    pub verified_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -11,7 +11,7 @@ pub mod handlers; // expose handlers module in this module tree
 pub mod payments; // expose payments module
 use tokio_stream::wrappers::BroadcastStream;
 use futures::StreamExt;
-use crate::utils::roles::{require_admin_mw, require_verified_student_mw};
+use crate::utils::roles::{require_admin_mw, require_verified_student_mw, require_auth_mw};
 
 pub fn auth_routes() -> Router<AppState> {
     Router::new()
@@ -30,16 +30,21 @@ pub fn student_routes() -> Router<AppState> {
         .route("/register", post(self::handlers::students::register))
         .route("/status/:user_id", get(self::handlers::students::get_status))
         .route("/update", post(self::handlers::students::update))
-        .route("/apply-verification", post(self::handlers::students::apply_verification))
+        .route("/apply-verification", post(self::handlers::students::apply_verification).layer(middleware::from_fn(require_auth_mw)))
         .route("/verification-status/:user_id", get(self::handlers::students::get_verification_status))
+        .route("/profile/:user_id", get(self::handlers::students::get_student_profile))
+        .route("/profile/:user_id", axum::routing::put(self::handlers::students::update_student_profile))
 }
 
 pub fn wallet_routes() -> Router<AppState> {
     Router::new()
+        .route("/test", get(self::handlers::wallets::test_connection))
         .route("/connect", post(self::handlers::wallets::connect))
+        .route("/user/:user_id", get(self::handlers::wallets::get_user_wallet))
+        .route("/details/:wallet_id", get(self::handlers::wallets::get_wallet_details))
         .route("/balance/:wallet_id", get(self::handlers::wallets::get_balance))
         .route("/transactions/:wallet_id", get(self::handlers::wallets::get_transactions))
-        .route_layer(middleware::from_fn(require_verified_student_mw))
+        // Removed student-only restriction - all authenticated users can connect wallets
 }
 
 pub fn project_routes() -> Router<AppState> {
@@ -58,6 +63,7 @@ pub fn donation_routes() -> Router<AppState> {
     Router::new()
         .route("/initiate", post(self::handlers::donations::initiate))
         .route("/verify", post(self::handlers::donations::verify))
+        .route("/platform/initiate", post(self::handlers::donations::initiate_platform_donation))
         .route("/project/:project_id", get(self::handlers::donations::get_project_donations))
         .route("/student/:student_id", get(self::handlers::donations::get_student_donations))
 }
@@ -80,8 +86,15 @@ pub fn admin_routes() -> Router<AppState> {
     Router::new()
         .route("/students", get(self::handlers::admin::list_students))
         .route("/verifications", get(self::handlers::admin::list_pending_verifications))
+        .route("/verifications/all", get(self::handlers::admin::list_all_verifications))
+        .route("/verifications/approved", get(self::handlers::admin::list_approved_verifications))
+        .route("/verifications/rejected", get(self::handlers::admin::list_rejected_verifications))
+        .route("/verifications/enhanced", get(self::handlers::admin::get_enhanced_verifications))
+        .route("/verifications/:id/details", get(self::handlers::admin::get_verification_details))
         .route("/verifications/:id/approve", post(self::handlers::admin::approve_verification))
         .route("/verifications/:id/reject", post(self::handlers::admin::reject_verification))
+        .route("/verifications/:id/approve-enhanced", post(self::handlers::admin::approve_verification_enhanced))
+        .route("/verifications/:id/reject-enhanced", post(self::handlers::admin::reject_verification_enhanced))
         .route("/approve-student/:verification_id", post(self::handlers::admin::approve_student_verification))
         .route("/verify-student", post(self::handlers::admin::verify_student))
         .route("/fund-student", post(self::handlers::admin::fund_student))

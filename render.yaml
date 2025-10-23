@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: fundhub-backend
+    env: rust
+    plan: starter
+    buildCommand: |
+      # Install system dependencies
+      apt-get update && apt-get install -y pkg-config libssl-dev postgresql-client
+      # Build the application
+      cargo build --release
+    startCommand: |
+      # Initialize database and start application
+      ./init-db.sh && ./target/release/fundhub
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: STELLAR_NETWORK
+        value: testnet
+      - key: STELLAR_HORIZON_URL
+        value: https://horizon-testnet.stellar.org
+      - key: SOROBAN_RPC_URL
+        value: https://soroban-testnet.stellar.org
+      - key: PLATFORM_WALLET_PUBLIC_KEY
+        sync: false
+      - key: RUST_LOG
+        value: info
+      - key: PORT
+        value: 8000
+    healthCheckPath: /health
+    autoDeploy: true
+    branch: main

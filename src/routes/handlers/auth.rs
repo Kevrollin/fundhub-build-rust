@@ -58,6 +58,11 @@ pub struct ProfileResponse {
     pub username: String,
     pub email: String,
     pub role: UserRole,
+    pub base_role: String,
+    pub is_verified: bool,
+    pub verification_status: Option<String>,
+    pub verification_submitted_at: Option<chrono::DateTime<Utc>>,
+    pub verification_approved_at: Option<chrono::DateTime<Utc>>,
     pub status: UserStatus,
     pub created_at: chrono::DateTime<Utc>,
 }
@@ -118,6 +123,7 @@ pub async fn login(
                base_role as "base_role!: BaseRole",
                is_verified as "is_verified!: bool",
                status as "status: UserStatus",
+               verification_status, verification_submitted_at, verification_approved_at,
                last_login,
                created_at as "created_at!: chrono::DateTime<chrono::Utc>"
         FROM users WHERE email = $1
@@ -207,6 +213,7 @@ pub async fn get_me(
                base_role as "base_role!: BaseRole",
                is_verified as "is_verified!: bool",
                status as "status: UserStatus",
+               verification_status, verification_submitted_at, verification_approved_at,
                last_login,
                created_at as "created_at!: chrono::DateTime<chrono::Utc>"
         FROM users WHERE id = $1
@@ -223,6 +230,11 @@ pub async fn get_me(
         username: user.username,
         email: user.email,
         role: user.role,
+        base_role: format!("{:?}", user.base_role),
+        is_verified: user.is_verified,
+        verification_status: user.verification_status,
+        verification_submitted_at: user.verification_submitted_at,
+        verification_approved_at: user.verification_approved_at,
         status: user.status,
         created_at: user.created_at,
     }))
@@ -240,6 +252,7 @@ pub async fn get_profile(
                base_role as "base_role!: BaseRole",
                is_verified as "is_verified!: bool",
                status as "status: UserStatus",
+               verification_status, verification_submitted_at, verification_approved_at,
                last_login,
                created_at as "created_at!: chrono::DateTime<chrono::Utc>"
         FROM users WHERE id = $1
@@ -256,6 +269,11 @@ pub async fn get_profile(
         username: user.username,
         email: user.email,
         role: user.role,
+        base_role: format!("{:?}", user.base_role),
+        is_verified: user.is_verified,
+        verification_status: user.verification_status,
+        verification_submitted_at: user.verification_submitted_at,
+        verification_approved_at: user.verification_approved_at,
         status: user.status,
         created_at: user.created_at,
     }))

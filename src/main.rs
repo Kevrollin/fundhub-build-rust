@@ -96,7 +96,7 @@ async fn main() -> Result<()> {
         .nest("/api/contracts", routes::contract_routes())
         .nest("/api/payments", routes::payment_routes())
         .nest("/api/notifications", routes::notification_routes())
-        .route("/api/notifications/stream", get(routes::sse_notifications))
+        .route("/api/notifications/sse", get(routes::sse_notifications))
         // Documentation routes
         .nest("/api/docs", routes::docs_routes())
         // Add CORS middleware
@@ -104,9 +104,15 @@ async fn main() -> Result<()> {
             CorsLayer::new()
                 .allow_origin([
                     "http://localhost:8080".parse().unwrap(),
+                    "https://localhost:8080".parse().unwrap(),
                     "http://localhost:3000".parse().unwrap(),
+                    "https://localhost:3000".parse().unwrap(),
                     "http://127.0.0.1:8080".parse().unwrap(),
+                    "https://127.0.0.1:8080".parse().unwrap(),
                     "http://127.0.0.1:3000".parse().unwrap(),
+                    "https://127.0.0.1:3000".parse().unwrap(),
+                    // Add your Vercel frontend domain here
+                    "https://your-app-name.vercel.app".parse().unwrap(),
                 ])
                 .allow_methods([
                     "GET".parse().unwrap(),
@@ -136,7 +142,10 @@ async fn main() -> Result<()> {
     startup_pb.finish_with_message("✅ FundHub Backend started successfully!");
 
     // Show server information
-    let port = 3000;
+    let port = std::env::var("PORT")
+        .unwrap_or_else(|_| "3000".to_string())
+        .parse::<u16>()
+        .unwrap_or(3000);
     cli.show_server_info(port);
 
     // Set up graceful shutdown
@@ -147,8 +156,8 @@ async fn main() -> Result<()> {
             .expect("Failed to install Ctrl+C handler");
     };
 
-    // Run the server
-    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    // Run the server - bind to 0.0.0.0 for production
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
     let server = axum::serve(tokio::net::TcpListener::bind(addr).await?, app.into_make_service());
 
     // Handle shutdown
