@@ -44,6 +44,7 @@ pub fn wallet_routes() -> Router<AppState> {
         .route("/details/:wallet_id", get(self::handlers::wallets::get_wallet_details))
         .route("/balance/:wallet_id", get(self::handlers::wallets::get_balance))
         .route("/transactions/:wallet_id", get(self::handlers::wallets::get_transactions))
+        .route("/verify-transaction", post(self::handlers::wallets::verify_transaction))
         // Removed student-only restriction - all authenticated users can connect wallets
 }
 

@@ -108,6 +108,30 @@ impl StellarService {
         }
         Ok(out)
     }
+
+    pub async fn fetch_transaction_details(&self, tx_hash: &str) -> Result<TransactionDetails> {
+        let base = if self.network == Network::new_test() {
+            "https://horizon-testnet.stellar.org"
+        } else {
+            "https://horizon.stellar.org"
+        };
+        let url = format!("{}/transactions/{}", base, tx_hash);
+        let resp = self.http.get(url).send().await?;
+        if !resp.status().is_success() {
+            return Err(anyhow::anyhow!("Transaction not found"));
+        }
+        let tx = resp.json::<TransactionResponse>().await?;
+        Ok(TransactionDetails {
+            hash: tx.hash,
+            successful: tx.successful,
+            ledger_attr: tx.ledger_attr,
+            created_at: tx.created_at,
+            fee_charged: tx.fee_charged,
+            operation_count: tx.operation_count,
+            memo: tx.memo,
+            source_account: tx.source_account,
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -124,6 +148,18 @@ pub struct TransactionRecord {
     pub from: String,
     pub to: String,
     pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone)]
+pub struct TransactionDetails {
+    pub hash: String,
+    pub successful: bool,
+    pub ledger_attr: Option<i64>,
+    pub created_at: String,
+    pub fee_charged: String,
+    pub operation_count: i32,
+    pub memo: Option<String>,
+    pub source_account: String,
 }
 
 // Horizon response types (partial)
@@ -157,4 +193,16 @@ struct PaymentOp {
     to: String,
     created_at: String,
     transaction_hash: String,
+}
+
+#[derive(Deserialize)]
+struct TransactionResponse {
+    hash: String,
+    successful: bool,
+    ledger_attr: Option<i64>,
+    created_at: String,
+    fee_charged: String,
+    operation_count: i32,
+    memo: Option<String>,
+    source_account: String,
 }

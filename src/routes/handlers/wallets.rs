@@ -258,4 +258,58 @@ pub async fn get_transactions(State(state): State<crate::state::AppState>, Path(
     Json(serde_json::json!([]))
 }
 
+#[derive(Deserialize)]
+pub struct VerifyTransactionRequest {
+    pub tx_hash: String,
+}
+
+#[derive(Serialize)]
+pub struct VerifyTransactionResponse {
+    pub hash: String,
+    pub successful: bool,
+    pub ledger_attr: Option<i64>,
+    pub created_at: String,
+    pub fee_charged: String,
+    pub operation_count: i32,
+    pub memo: Option<String>,
+    pub source_account: String,
+    pub network: String,
+}
+
+pub async fn verify_transaction(
+    State(state): State<crate::state::AppState>,
+    Json(payload): Json<VerifyTransactionRequest>
+) -> Result<Json<VerifyTransactionResponse>, StatusCode> {
+    tracing::info!("Verifying transaction: {}", payload.tx_hash);
+    
+    // Validate transaction hash format
+    if payload.tx_hash.len() != 64 || !payload.tx_hash.chars().all(|c| c.is_ascii_hexdigit()) {
+        tracing::warn!("Invalid transaction hash format: {}", payload.tx_hash);
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    
+    // Fetch transaction details from Stellar network
+    match state.stellar.fetch_transaction_details(&payload.tx_hash).await {
+        Ok(tx_details) => {
+            tracing::info!("Transaction verified successfully: {}", payload.tx_hash);
+            
+            Ok(Json(VerifyTransactionResponse {
+                hash: tx_details.hash,
+                successful: tx_details.successful,
+                ledger_attr: tx_details.ledger_attr,
+                created_at: tx_details.created_at,
+                fee_charged: tx_details.fee_charged,
+                operation_count: tx_details.operation_count,
+                memo: tx_details.memo,
+                source_account: tx_details.source_account,
+                network: "testnet".to_string(), // For now, assume testnet
+            }))
+        }
+        Err(e) => {
+            tracing::error!("Failed to verify transaction {}: {}", payload.tx_hash, e);
+            Err(StatusCode::NOT_FOUND)
+        }
+    }
+}
+
 
