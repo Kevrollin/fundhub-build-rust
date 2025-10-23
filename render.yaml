@@ -1,16 +1,9 @@
 services:
   - type: web
     name: fundhub-backend
-    env: rust
+    env: docker
     plan: starter
-    buildCommand: |
-      # Install system dependencies
-      apt-get update && apt-get install -y pkg-config libssl-dev postgresql-client
-      # Build the application
-      cargo build --release
-    startCommand: |
-      # Initialize database and start application
-      ./init-db.sh && ./target/release/fundhub
+    dockerfilePath: ./Dockerfile.render
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -30,6 +23,8 @@ services:
         value: info
       - key: PORT
         value: 8000
+      - key: CORS_ORIGINS
+        value: "*"
     healthCheckPath: /health
     autoDeploy: true
     branch: main
